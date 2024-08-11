@@ -1,3 +1,5 @@
+# Some part of this code has been adapted from: https://github.com/berniwal/swin-transformer-pytorch/blob/master/swin_transformer_pytorch/swin_transformer.py
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
