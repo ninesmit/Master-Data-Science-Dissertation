@@ -1,3 +1,5 @@
+# The structure of this code has been adapted from https://www.kymat.io/gallery_2d/cifar_torch.html#sphx-glr-gallery-2d-cifar-torch-py
+
 import time
 import datetime
 import torch
