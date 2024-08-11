@@ -1,3 +1,5 @@
+# Some part of this code is adapted from: https://github.com/kentaroy47/vision-transformers-cifar10/blob/main/models/vit.py
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
