@@ -25,8 +25,6 @@ import kymatio.datasets as scattering_datasets
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
 
-## Additional Function
-
 def pair(t):
     return t if isinstance(t, tuple) else (t, t)
 
@@ -45,19 +43,8 @@ def initialize_weights(m):
     elif isinstance(m, nn.Embedding):
         init.xavier_uniform_(m.weight)
 
-def get_some_weights(model, num_weights=10):
-    weights = []
-    for param in model.parameters():
-        if param.requires_grad:
-            weights.extend(param.view(-1).detach().cpu().numpy())
-        if len(weights) >= num_weights:
-            break
-    return weights[:num_weights]
-
 def count_trainable_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
-    
-## Pre-norm Class
     
 class PreNorm(nn.Module):
     def __init__(self, dim, fn):
@@ -80,8 +67,6 @@ class FeedForward(nn.Module):
     def forward(self, x):
         return self.net(x)
     
-## Attention Class
-
 class Attention(nn.Module):
     def __init__(self, dim, heads = 8, dim_head = 64, dropout = 0.):
         super().__init__()
@@ -111,8 +96,6 @@ class Attention(nn.Module):
         out = rearrange(out, 'b h n d -> b n (h d)')
         return self.to_out(out)
     
-## Transformer Class
-
 class Transformer(nn.Module):
     def __init__(self, dim, depth, heads, dim_head, mlp_dim, dropout = 0.):
         super().__init__()
@@ -128,8 +111,6 @@ class Transformer(nn.Module):
             x = ff(x) + x
         return x
 
-## Scattering with ViT class
-    
 class Scattering2dVIT(nn.Module):
     '''
         ViT with scattering transform as input
@@ -212,10 +193,6 @@ def train(model, device, train_loader, optimizer, epoch):
     train_time = str(train_duration)
     print(f"Training time for epoch:{epoch} is {train_time}")
     
-    # Get and log some weights
-    some_weights = get_some_weights(model)
-    print(f"Epoch {epoch} weights: {some_weights}")
-    
     return train_loss_log, train_time
 
 def test(model, device, test_loader):
@@ -253,7 +230,7 @@ def test(model, device, test_loader):
 
 mode = 2
 image_size = 64
-text_file_name = 'Vit_Scat_Model12.txt'
+text_file_name = 'Svit_Freq.txt'
 num_classes = 10
 dim = 1024
 depth = 6
@@ -272,13 +249,17 @@ num_epoch = 100
 ## Training Loop
 
 if mode == 1:
-    scattering = Scattering2D(J=2, shape=(image_size, image_size), max_order=1)
+    scattering = Scattering2D(J=1, shape=(image_size, image_size))
     K = 17*3
 elif mode == 2:
     scattering = Scattering2D(J=2, shape=(image_size, image_size))
     K = 81*3
+elif mode == 3:
+    scattering = Scattering2D(J=3, shape=(image_size, image_size))
+    K = 217*3
 else:
-    print("Specify the number of scale for scattering transformation")
+    scattering = Scattering2D(J=2, shape=(image_size, image_size))
+    K = 81*3
 
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda" if use_cuda else "cpu")
@@ -365,7 +346,7 @@ for epoch in range(0, num_epoch):
 
     # Save the model every 20 epochs
     if (epoch + 1) % 10 == 0:
-        torch.save(model.state_dict(), f'Vit_Scat_Model12_epoch_{epoch+1}.pth')
+        torch.save(model.state_dict(), f'Svit_Freq_epoch_{epoch+1}.pth')
         print(f'Model saved at epoch {epoch+1}')
 
 total_end_time = time.time()
