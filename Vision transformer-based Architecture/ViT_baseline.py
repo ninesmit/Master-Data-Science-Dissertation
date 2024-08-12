@@ -1,5 +1,3 @@
-# Some part of this code is adapted from: https://github.com/kentaroy47/vision-transformers-cifar10/blob/main/models/vit.py
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -13,6 +11,7 @@ import os
 import pandas as pd
 import csv
 import time
+import random
 import datetime
 import argparse
 import sys
@@ -24,6 +23,15 @@ import kymatio.datasets as scattering_datasets
 
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
+
+def set_seed(seed):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    cudnn.benchmark = False
+    cudnn.deterministic = True
 
 def pair(t):
     return t if isinstance(t, tuple) else (t, t)
@@ -146,50 +154,31 @@ class Scattering2dVIT(nn.Module):
         )
                     
     def forward(self, img):
-
-        ## Step1: Dividing images into patches
-        ## Step2: Linear Projection and flattening
         x = self.to_patch_embedding(img)
         b, n, _ = x.shape
-
-        ## Step3: Positional Embedding
         cls_tokens = repeat(self.cls_token, '() n d -> b n d', b = b)
         x = torch.cat((cls_tokens, x), dim=1)
         x += self.pos_embedding[:, :(n + 1)]
         x = self.dropout2(x)
-
-        ## Step4: Transformer Encoders
         x = self.transformer(x)
-
-        ## Step5: MLP Heads and making a prediction.
         x = x.mean(dim = 1) if self.pool == 'mean' else x[:, 0]
-
         x = self.to_latent(x)
         return self.mlp_head(x)
 
 def initialize_weights(m):
-  if isinstance(m, nn.Linear):
-      init.xavier_uniform_(m.weight)
-      if m.bias is not None:
-          init.zeros_(m.bias)
-  elif isinstance(m, nn.Conv2d):
-      init.kaiming_uniform_(m.weight, nonlinearity='relu')
-      if m.bias is not None:
-          init.zeros_(m.bias)
-  elif isinstance(m, nn.LayerNorm):
-      init.ones_(m.weight)
-      init.zeros_(m.bias)
-  elif isinstance(m, nn.Embedding):
-      init.xavier_uniform_(m.weight)
-
-def get_some_weights(model, num_weights=10):
-    weights = []
-    for param in model.parameters():
-        if param.requires_grad:
-            weights.extend(param.view(-1).detach().cpu().numpy())
-        if len(weights) >= num_weights:
-            break
-    return weights[:num_weights]
+    if isinstance(m, nn.Linear):
+        init.xavier_uniform_(m.weight)
+        if m.bias is not None:
+            init.zeros_(m.bias)
+    elif isinstance(m, nn.Conv2d):
+        init.kaiming_uniform_(m.weight, nonlinearity='relu')
+        if m.bias is not None:
+            init.zeros_(m.bias)
+    elif isinstance(m, nn.LayerNorm):
+        init.ones_(m.weight)
+        init.zeros_(m.bias)
+    elif isinstance(m, nn.Embedding):
+        init.xavier_uniform_(m.weight)
 
 def train(model, device, train_loader, optimizer, epoch):
     train_loss_log = np.zeros((1,16))
@@ -212,15 +201,9 @@ def train(model, device, train_loader, optimizer, epoch):
     train_duration = datetime.timedelta(seconds=train_end_time - train_start_time)
     train_time = str(train_duration)
     print(f"Training time for epoch:{epoch} is {train_time}")
-    
-    # Get and log some weights
-    some_weights = get_some_weights(model)
-    print(f"Epoch {epoch} weights: {some_weights}")
-    
     return train_loss_log, train_time
 
 def test(model, device, test_loader):
-    
     test_start_time = time.time()
     model.eval()
     test_loss = 0
@@ -253,25 +236,37 @@ def test(model, device, test_loader):
 def count_trainable_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-mode = 2
+# Fix the seed for reproducibility
+set_seed(42)
+
+# All Parameters
 image_size = 128
+text_file_name = 'Vit_baseline.txt'
+num_workers = 4
+learning_rate = 0.0001
+num_epoch = 100
+batch_size = 128
+patch_size=4 
+num_classes=10 
+dim=1024 
+depth=5
+heads=5
+mlp_dim=512
+dropout=0.15
+emb_dropout=0.15
 
-if mode == 1:
-    scattering = Scattering2D(J=2, shape=(image_size, image_size), max_order=1)
-    K = 17*3
-elif mode == 2:
-    scattering = Scattering2D(J=2, shape=(image_size, image_size))
-    K = 81*3
-else:
-    scattering = Scattering2D(J=2, shape=(image_size, image_size))
-    K = 81*3
-
-text_file_name = 'vit_b_32_scat.txt'
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda" if use_cuda else "cpu")
 
-scattering = scattering.to(device)
-model = Scattering2dVIT(image_size=128, patch_size=16, num_classes=10, dim=512, depth=10, heads=10, mlp_dim=512, dropout=0.05, emb_dropout=0.05).to(device)
+model = Scattering2dVIT(image_size=image_size, 
+                        patch_size=patch_size, 
+                        num_classes=num_classes, 
+                        dim=dim, 
+                        depth=depth, 
+                        heads=heads, 
+                        mlp_dim=mlp_dim, 
+                        dropout=dropout, 
+                        emb_dropout=emb_dropout).to(device)
 model.apply(initialize_weights)
 
 total_params = count_trainable_parameters(model)
@@ -285,7 +280,6 @@ if use_cuda and torch.cuda.device_count() > 1:
     model = nn.DataParallel(model)
 
 # DataLoaders
-num_workers = 4
 pin_memory = True if use_cuda else False
 
 normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
@@ -303,7 +297,7 @@ datasets.CIFAR10(root='.', train=True, transform=transforms.Compose([
     transforms.ToTensor(),
     normalize,
 ]), download=True),
-batch_size=128, shuffle=True, num_workers=num_workers, pin_memory=pin_memory)
+batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=pin_memory)
 
 test_loader = torch.utils.data.DataLoader(
     datasets.CIFAR10(root='.', train=False, transform=transforms.Compose([
@@ -311,18 +305,30 @@ test_loader = torch.utils.data.DataLoader(
         transforms.ToTensor(),
         normalize,
     ])),
-    batch_size=128, shuffle=False, num_workers=num_workers, pin_memory=pin_memory)
+    batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=pin_memory)
 
 # Optimizer
-optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+
+# Learning rate scheduler
+def lr_lambda(epoch):
+    if epoch < 70:
+        return 1
+    else:
+        return 0.5
+
+scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda)
 
 total_start_time = time.time()
-
-num_epoch = 200
+acc_log = np.zeros((1,num_epoch))
 
 for epoch in range(0, num_epoch):
     train_loss_log, train_time = train(model, device, train_loader, optimizer, epoch+1)
     test_loss_log, test_time, test_accuracy = test(model, device, test_loader)
+    acc_log[0][epoch] = test_accuracy
+
+    # Step the learning rate scheduler
+    scheduler.step()
     
     # write the log of training to the file
     with open(text_file_name, 'a') as file:
@@ -330,7 +336,7 @@ for epoch in range(0, num_epoch):
 
     # Save the model every 20 epochs
     if (epoch + 1) % 10 == 0:
-        torch.save(model.state_dict(), f'ViT_Scat_epoch_{epoch+1}.pth')
+        torch.save(model.state_dict(), f'Vit_baseline_epoch_{epoch+1}.pth')
         print(f'Model saved at epoch {epoch+1}')
 
 total_end_time = time.time()
@@ -339,4 +345,5 @@ total_elapsed_time = datetime.timedelta(seconds=total_end_time - total_start_tim
 with open(text_file_name, 'a') as file:
     file.write(f"""Total Training time:{str(total_elapsed_time)}""")
 
+print(f"Highest Accuracy is {acc_log.max()} at epoch {np.argmax(acc_log) + 1}")
 print(f"\nTotal training time for {num_epoch} epochs: {str(total_elapsed_time)}")
