@@ -10,10 +10,14 @@ This includes both traditional CNN and other existing architectures. All of them
   - DenseNet121
   - EfficienNetB3
   - ResNet18
+<br><br>
+
 **2. Vision Transformer Architecture**<br>
 A vanilla vision transformer is used as a baseline model in comparison to other hybrid models, including SViT-Image, SViT-Patch, and SViT-Freq. These 3 hybrid models leverage different techniques of tokenization in combination with scattering transform.
   - ViT (Baseline)
   - SViT-Image
   - SViT-Patch
-  - SViT-Freq  
+  - SViT-Freq
+<br><br>
+
 -requirements to run the code
