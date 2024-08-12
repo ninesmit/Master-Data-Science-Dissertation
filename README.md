@@ -38,7 +38,7 @@ Some variables might be worth understanding for modifying the models.<br>
 
 For all architectures, the 'mode' variable defines the number of scale parameters used for scattering transform. The code provided is set to accept the number from 1 to 3. In case a higher number of the scale parameters is needed, some modifications are required. 
 ```
-# Setting the J in the function to the number you desire
+# Set the J in the function to the number you desire
 # Set the K according to the J set above
 mode == 1:
     scattering = Scattering2D(J=1, shape=(image_size, image_size))
@@ -48,7 +48,16 @@ mode == 2:
     K = 81*3
 ....
 ```
-
+For the vision transformer, there are 2 key variables, including 'depth' and 'head'. The 'depth' variable defines the number of encoder layers used in the model, while the variable 'head' determines the number of attention heads in each encoder layer.
+```
+depth = 5
+head = 5
+```
+For the swin transformer, similarly to the vision transformer, the 'layers' variable controls the number of swin blocks in each stage, from stage 1 to stage 4. The 'heads' variable defines the number of attention heads in each stage, from 1 to 4.
+```
+layers = (2,2,6,2)
+heads = (3,6,12,24)
+```
 ## Note
 - The orientation parameter of the scattering transform is set to 8 throughout this project.
 - Running codes on different hardware devices might result in different final outputs.
