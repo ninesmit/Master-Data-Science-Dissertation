@@ -20,4 +20,16 @@ A vanilla vision transformer is used as a baseline model in comparison to other 
   - SViT-Freq
 <br><br>
 
--requirements to run the code
+**3. Swin Transformer Architecture**<br>
+A vanilla swin transformer is used as a baseline model, while the modified models with one and two-stage modules removed are implemented for experimenting.
+  - Swin Transformer (Baseline)
+  - Scattering Swin Transformer with 1 module removed
+  - Scattering Swin Transformer with 2 modules removed
+<br><br>
+
+## How to run the code
+With all necessary packages installed in the environment, these codes should be able to run smoothly. Each source code for each model is independent. The additional packages that you might need include ***kymatio*** and ***einops***. 
+```
+pip install kymatio
+pip install einops
+```
