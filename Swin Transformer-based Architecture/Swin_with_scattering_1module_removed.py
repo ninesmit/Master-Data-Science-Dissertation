@@ -328,11 +328,10 @@ def count_trainable_parameters(model):
 # All Parameters
 mode = 2
 image_size = 128
-text_file_name = 'Swin_Scat_Model8.txt'
+text_file_name = 'Swin_with_scattering_1module_removed.txt'
 hidden_dim = 96
 layers = (2,2,6,2)
 heads = (3,6,12,24)
-channels = 243
 num_classes = 10
 head_dim = 32
 window_size = 2
@@ -344,11 +343,14 @@ learning_rate = 0.0001
 num_epoch = 100
 
 if mode == 1:
-    scattering = Scattering2D(J=2, shape=(image_size, image_size), max_order=1)
+    scattering = Scattering2D(J=1, shape=(image_size, image_size))
     K = 17*3
 elif mode == 2:
     scattering = Scattering2D(J=2, shape=(image_size, image_size))
     K = 81*3
+elif mode == 3:
+    scattering = Scattering2D(J=3, shape=(image_size, image_size))
+    K = 217*3
 else:
     scattering = Scattering2D(J=2, shape=(image_size, image_size))
     K = 81*3
@@ -360,7 +362,7 @@ scattering = scattering.to(device)
 model = SwinTransformer(hidden_dim = hidden_dim,
                         layers=layers,
                         heads=heads,
-                        channels=channels,
+                        channels=K,
                         num_classes=num_classes,
                         head_dim=head_dim,
                         window_size=window_size,
@@ -437,7 +439,7 @@ for epoch in range(0, num_epoch):
 
     # Save the model every 20 epochs
     if (epoch + 1) % 100 == 0:
-        torch.save(model.state_dict(), f'Swin_Scat_Model8_epoch_{epoch+1}.pth')
+        torch.save(model.state_dict(), f'Swin_with_scattering_1module_removed_epoch_{epoch+1}.pth')
         print(f'Model saved at epoch {epoch+1}')
 
 total_end_time = time.time()
