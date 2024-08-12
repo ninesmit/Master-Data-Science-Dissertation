@@ -33,3 +33,9 @@ With all necessary packages installed in the environment, these codes should be 
 pip install kymatio
 pip install einops
 ```
+## Modify the models
+- 
+## Note
+- Orientation used in this code is always 8
+- version of each package
+- running on different hardware device might result in different final output
