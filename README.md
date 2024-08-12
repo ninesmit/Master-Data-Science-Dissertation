@@ -1,5 +1,5 @@
 # CNN and Transformer-based architecture with scattering transform
-This repository contains source codes for all models implemented in my dissertation for my Master Degree.
+This repository contains source codes for all models implemented in my dissertation for my Master's Degree.
 
 ## Model Explanation
 There are 3 architectures used in this project, including a CNN-based model, vision transformer, and swin transformer.
@@ -21,7 +21,7 @@ A vanilla vision transformer is used as a baseline model in comparison to other 
 <br><br>
 
 **3. Swin Transformer Architecture**<br>
-A vanilla swin transformer is used as a baseline model, while the modified models with one and two-stage modules removed are implemented for experimenting.
+A vanilla swin transformer is used as a baseline model, while the modified models with one- and two-stage modules removed are implemented for experimentation.
   - Swin Transformer (Baseline)
   - Scattering Swin Transformer with 1 module removed
   - Scattering Swin Transformer with 2 modules removed
@@ -33,9 +33,22 @@ With all necessary packages installed in the environment, these codes should be 
 pip install kymatio
 pip install einops
 ```
-## Modify the models
-- 
+## Modifying the Models
+Some variables might be worth understanding for modifying the models.<br>
+
+For all architectures, the 'mode' variable defines the number of scale parameters used for scattering transform. The code provided is set to accept the number from 1 to 3. In case a higher number of the scale parameters is needed, some modifications are required. 
+```
+# Setting the J in the function to the number you desire
+# Set the K according to the J set above
+mode == 1:
+    scattering = Scattering2D(J=1, shape=(image_size, image_size))
+    K = 17*3
+mode == 2:
+    scattering = Scattering2D(J=2, shape=(image_size, image_size))
+    K = 81*3
+....
+```
+
 ## Note
-- Orientation used in this code is always 8
-- version of each package
-- running on different hardware device might result in different final output
+- The orientation parameter of the scattering transform is set to 8 throughout this project.
+- Running codes on different hardware devices might result in different final outputs.
